@@ -5,7 +5,6 @@ plugins {
 }
 
 group = "com.amarildo"
-version = "0.0.1-SNAPSHOT"
 
 java {
     toolchain {
