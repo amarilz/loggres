@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <title>Postgres Workload Analyzer</title>
+    <link href="/app.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+<main class="shell">
+    <header class="masthead">
+        <p class="eyebrow">POSTGRES / WORKLOAD ANALYZER</p>
+        <h1>What is really<br><em>loading the database?</em></h1>
+        <p class="intro">Upload your logs and move from individual rows to an aggregated view of the workload.</p>
+    </header>
+    <section class="upload-panel">
+        <div>
+            <p class="section-kicker">01 / SOURCE</p>
+            <h2>Choose logs to analyze</h2>
+        </div>
+        <div class="actions"><label class="pick-button" for="files">Select files</label><input id="files"
+                                                                                               multiple
+                                                                                               type="file"><label
+                class="pick-button secondary" for="folder">Select
+            folder</label><input directory id="folder" multiple type="file" webkitdirectory></div>
+        <div class="selection empty" id="selection">No files selected</div>
+        <button class="parse-button" disabled
+                id="parse">Analyze workload <span>→</span></button>
+        <p class="status" id="status" role="status"></p>
+    </section>
+    <section hidden id="dashboard">
+        <section class="issues" hidden id="issues-panel">
+            <h3>Unrecognized rows</h3>
+            <ul id="issues"></ul>
+        </section>
+        <div class="section-bar">
+            <div>
+                <p class="section-kicker">02 / OVERVIEW</p>
+                <h2>Workload snapshot</h2>
+            </div>
+            <span class="mono" id="analysis-label"></span>
+        </div>
+        <section class="alert-dashboard">
+            <div class="alert-summary">
+                <div class="alert-stat"><span>Analysis period</span><strong id="alert-period">n/d</strong></div>
+                <div class="alert-stat"><span>Outliers</span><strong id="alert-outliers">0</strong></div>
+                <div class="alert-stat"><span>Unrecognized rows</span><strong id="alert-issues">0</strong></div>
+            </div>
+            <div class="alert-rankings">
+                <section class="alert-ranking">
+                    <p class="section-kicker">TOP BY TOTAL TIME</p>
+                    <div class="alert-list" id="top-total-time"></div>
+                </section>
+                <section class="alert-ranking">
+                    <p class="section-kicker">SLOWEST AVERAGE</p>
+                    <div class="alert-list" id="top-average-duration"></div>
+                </section>
+                <section class="alert-ranking">
+                    <p class="section-kicker">MOST FREQUENT</p>
+                    <div class="alert-list" id="top-frequency"></div>
+                </section>
+            </div>
+        </section>
+        <div class="metrics" id="metrics"></div>
+        <div class="analysis-grid">
+            <section class="panel timeline-panel">
+                <div class="panel-head">
+                    <div>
+                        <p class="section-kicker">LOAD OVER TIME</p>
+                        <h3>Frequency and execution time</h3>
+                    </div>
+                    <select id="bucket">
+                        <option value="1">1 sec</option>
+                        <option value="10">10 sec</option>
+                        <option selected value="60">1 min</option>
+                        <option value="300">5 min</option>
+                        <option value="3600">1 hour</option>
+                    </select>
+                </div>
+                <canvas id="timeline"></canvas>
+            </section>
+            <section class="panel">
+                <div class="panel-head">
+                    <div>
+                        <p class="section-kicker">BREAKDOWN</p>
+                        <h3>Query type</h3>
+                    </div>
+                </div>
+                <div class="breakdown" id="breakdown"></div>
+            </section>
+        </div>
+        <section class="panel queries-panel">
+            <div class="panel-head">
+                <div>
+                    <p class="section-kicker">03 / TOP QUERIES</p>
+                    <h2>Aggregated impact</h2>
+                </div>
+                <div class="quick-sort">
+                    <button class="active" data-sort="frequency">Most frequent</button>
+                    <button
+                            data-sort="total">Highest total time
+                    </button>
+                    <button data-sort="average">Slowest
+                        average
+                    </button>
+                    <button data-sort="max">Slowest max</button>
+                    <button data-sort="length">Query
+                        longest
+                    </button>
+                </div>
+            </div>
+            <div class="filters"><input id="text" placeholder="Search SQL text"><input id="database"
+                                                                                       placeholder="Database"><input
+                    id="username" placeholder="Username"><input id="client"
+                                                                placeholder="Client/IP"><select id="type">
+                <option value="">All types</option>
+                <option>SELECT</option>
+                <option>INSERT</option>
+                <option>UPDATE</option>
+                <option>DELETE</option>
+                <option>BEGIN</option>
+                <option>COMMIT</option>
+                <option>ROLLBACK</option>
+                <option>DDL</option>
+                <option>OTHER</option>
+            </select><input id="from" title="From" type="datetime-local"><input id="to" title="To"
+                                                                                type="datetime-local"><input id="minDuration"
+                                                                                                  min="0" placeholder="Min duration ms"
+                                                                                                  step="any"
+                                                                                                  type="number"><input
+                    id="maxDuration" min="0" placeholder="Max duration ms" step="any"
+                    type="number">
+                <button id="apply-filters">Apply filters</button>
+                <button
+                        id="clear-filters" type="button">Clear filters
+                </button>
+                <button id="save-filters"
+                        type="button">Save filters
+                </button>
+                <select aria-label="Saved filters" id="saved-filters">
+                    <option value="">Load saved filters</option>
+                </select>
+                <button disabled id="copy-csv">Copy page CSV</button>
+            </div>
+            <div aria-live="polite" class="active-filters" id="active-filters"></div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Normalized query</th>
+                        <th>Characters</th>
+                        <th>Executions</th>
+                        <th>Total time</th>
+                        <th>Average</th>
+                        <th>Max</th>
+                        <th>Primary user</th>
+                        <th>First / last</th>
+                    </tr>
+                    </thead>
+                    <tbody id="query-rows"></tbody>
+                </table>
+                <p class="empty-table" hidden id="no-results">No queries match the filters.</p>
+            </div>
+            <div class="pager">
+                <button id="previous">←</button>
+                <span id="page-label">Page 1</span>
+                <button
+                        id="next">→
+                </button>
+            </div>
+        </section>
+    </section>
+</main>
+<aside class="drawer" hidden id="detail">
+    <button class="close" id="close-detail">×</button>
+    <div id="detail-content"></div>
+</aside>
+<div class="backdrop" hidden id="backdrop"></div>
+<script src="/app.js"></script>
+</body>
+
+</html>
