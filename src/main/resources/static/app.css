@@ -72,6 +72,12 @@ h1 em {
     line-height: 1.5
 }
 
+.app-version {
+    margin: 16px 0 0;
+    color: var(--muted);
+    font: 11px 'DM Mono', monospace
+}
+
 h2 {
     margin: 0;
     font-size: 28px;

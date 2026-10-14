@@ -5,6 +5,7 @@ const esc = value => String(value ?? '').replace(/[&<>'"]/g, c => ({ '&': '&amp;
 const number = value => value == null ? 'n/d' : `${Number(value).toLocaleString('it-IT', { maximumFractionDigits: 2 })} ms`;
 const filters = () => Object.fromEntries(filterNames.map(name => [name, ['from', 'to'].includes(name) && $(`#${name}`).value ? new Date($(`#${name}`).value).toISOString() : $(`#${name}`).value]).filter(([, value]) => value));
 const queryString = extra => new URLSearchParams({ ...filters(), ...extra }).toString();
+loadAppVersion();
 
 function setFiles(value) { files = [...value]; $('#selection').textContent = files.length ? `${files.length} file${files.length === 1 ? '' : 's'} ready · ${files.map(file => file.webkitRelativePath || file.name).join(', ')}` : 'No files selected'; $('#selection').classList.toggle('empty', !files.length); $('#parse').disabled = !files.length; }
 $('#files').addEventListener('change', event => setFiles(event.target.files)); $('#folder').addEventListener('change', event => setFiles(event.target.files));
@@ -31,6 +32,7 @@ async function openDetail(id) { const [detail, executions, occurrences] = await 
 function renderParameterOccurrences(occurrences) { if (!occurrences.length) return '<p class="muted">No parameter values detected</p>'; const singleUse = occurrences.filter(item => item.executionCount === 1); const visible = occurrences.filter(item => item.executionCount > 1).concat(singleUse.slice(0, 5)); const omitted = singleUse.length - Math.min(singleUse.length, 5); return `<div class="parameter-occurrences">${visible.map(item => `<article><header><b>${item.executionCount.toLocaleString('it-IT')} uses</b></header><code>${esc(item.resolvedSql)}</code></article>`).join('')}${omitted ? `<p class="muted">${omitted.toLocaleString('it-IT')} other combinations used once were not shown.</p>` : ''}</div>`; }
 function closeDetail() { $('#detail').hidden = true; $('#backdrop').hidden = true; }
 async function get(url) { const response = await fetch(url); if (!response.ok) throw new Error(`HTTP ${response.status}`); return response.json(); }
+async function loadAppVersion() { try { const data = await get('/api/version'); $('#app-version').textContent = data.version; } catch (error) { $('#app-version').textContent = 'Unavailable'; console.error(`Unable to load application version: ${error.message}`); } }
 function renderIssues(issues) { $('#issues-panel').hidden = !issues.length; $('#issues').innerHTML = issues.map(issue => `<li><b>${esc(issue.file || 'file')}</b>${issue.line ? ` · row ${issue.line}` : ''}: ${esc(issue.message)}</li>`).join(''); }
 function setStatus(text, state) { $('#status').textContent = text; $('#status').className = `status ${state}`; }
 function topKey(values) { return Object.entries(values || {}).sort((a, b) => b[1] - a[1])[0]?.[0] || 'n/d'; }
