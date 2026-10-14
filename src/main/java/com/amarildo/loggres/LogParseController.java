@@ -4,6 +4,7 @@ import com.amarildo.loggres.analysis.Filters;
 import com.amarildo.loggres.analysis.WorkloadAnalysisService;
 import com.amarildo.loggres.parser.LogParseResult;
 import com.amarildo.loggres.parser.LogParseService;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,12 +25,21 @@ public class LogParseController {
 
     private final LogParseService logParseService;
     private final WorkloadAnalysisService analysisService;
+    private final BuildProperties buildProperties;
 
     @Autowired
-    public LogParseController(LogParseService logParseService, WorkloadAnalysisService analysisService) {
+    public LogParseController(LogParseService logParseService, WorkloadAnalysisService analysisService,
+                              BuildProperties buildProperties) {
 
         this.logParseService = logParseService;
         this.analysisService = analysisService;
+        this.buildProperties = buildProperties;
+    }
+
+    @GetMapping("/version")
+    public ApplicationVersion version() {
+
+        return new ApplicationVersion(buildProperties.getVersion());
     }
 
     @PostMapping(value = "/logs/parse", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -85,6 +95,9 @@ public class LogParseController {
     parameterOccurrences(@PathVariable UUID analysisId, @PathVariable UUID queryId) {
 
         return analysisService.parameterOccurrences(analysisId, queryId);
+    }
+
+    public record ApplicationVersion(String version) {
     }
 
     @GetMapping("/analysis/{analysisId}/timeline")

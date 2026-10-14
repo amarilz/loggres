@@ -18,7 +18,7 @@ final class PendingQuery {
     private final QueryType type;
     private final String preparedStatementName;
     private final String sql;
-    private final Double durationMillis;
+    private Double durationMillis;
     private final Map<Integer, String> parameters = new LinkedHashMap<>();
 
     static PendingQuery from(ParsedLogEntry entry, QueryLogMessage message) {
@@ -39,6 +39,11 @@ final class PendingQuery {
     void addParameters(Map<Integer, String> parameters) {
 
         this.parameters.putAll(parameters);
+    }
+
+    void setDurationMillis(double durationMillis) {
+
+        this.durationMillis = durationMillis;
     }
 
     PostgresQuery build() {
