@@ -77,6 +77,21 @@ public final class QueryLogMessageParser {
         return Optional.of(queryLogMessage);
     }
 
+    public Optional<Double> parseStandaloneDuration(String message) {
+
+        Optional<DurationMessage> durationMessage = parseDuration(message);
+        if (durationMessage.isEmpty()) {
+            return Optional.empty();
+        }
+
+        DurationMessage parsed = durationMessage.get();
+        if (parsed.durationMillis() == null || !parsed.message().isBlank()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(parsed.durationMillis());
+    }
+
     private Optional<DurationMessage> parseDuration(String message) {
 
         if (!message.regionMatches(true, 0, DURATION_PREFIX, 0, DURATION_PREFIX.length())) {

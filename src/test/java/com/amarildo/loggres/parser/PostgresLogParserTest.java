@@ -26,6 +26,51 @@ class PostgresLogParserTest {
     }
 
     @Test
+    void associatesStandaloneDurationWithPreviousStatement() throws IOException {
+        var result = parse(
+                "2026-10-14 12:30:09.463 UTC [64] botdbuser@botdb 127.0.0.1(58308) LOG:  statement: SET application_name = 'PostgreSQL JDBC Driver'",
+                "2026-10-14 12:30:09.463 UTC [64] botdbuser@botdb 127.0.0.1(58308) LOG:  duration: 0.153 ms");
+
+        assertEquals(1, result.queries().size());
+        assertEquals("SET application_name = 'PostgreSQL JDBC Driver'", result.queries().getFirst().sql());
+        assertEquals(0.153, result.queries().getFirst().durationMillis());
+    }
+
+    @Test
+    void emptyStatementDoesNotReplacePreviousQueryDuration() throws IOException {
+        var result = parse(
+                "2026-10-14 12:30:09.463 UTC [64] botdbuser@botdb 127.0.0.1(58308) LOG:  statement: SET application_name = 'PostgreSQL JDBC Driver'",
+                "2026-10-14 12:30:09.463 UTC [64] botdbuser@botdb 127.0.0.1(58308) LOG:  duration: 0.153 ms",
+                "2026-10-14 12:30:09.494 UTC [64] botdbuser@botdb 127.0.0.1(58308) LOG:  statement: ",
+                "2026-10-14 12:30:09.494 UTC [64] botdbuser@botdb 127.0.0.1(58308) LOG:  duration: 0.055 ms");
+
+        assertEquals(1, result.queries().size());
+        assertEquals("SET application_name = 'PostgreSQL JDBC Driver'", result.queries().getFirst().sql());
+        assertEquals(0.153, result.queries().getFirst().durationMillis());
+    }
+
+    @Test
+    void associatesStandaloneDurationWithExtendedProtocolExecute() throws IOException {
+        var result = parse(
+                "2026-10-14 12:30:09.494 UTC [64] botdbuser@botdb 127.0.0.1(58308) LOG:  duration: 0.190 ms  parse <unnamed>: SHOW TRANSACTION ISOLATION LEVEL",
+                "2026-10-14 12:30:09.494 UTC [64] botdbuser@botdb 127.0.0.1(58308) LOG:  duration: 0.009 ms  bind <unnamed>: SHOW TRANSACTION ISOLATION LEVEL",
+                "2026-10-14 12:30:09.494 UTC [64] botdbuser@botdb 127.0.0.1(58308) LOG:  execute <unnamed>: SHOW TRANSACTION ISOLATION LEVEL",
+                "2026-10-14 12:30:09.494 UTC [64] botdbuser@botdb 127.0.0.1(58308) LOG:  duration: 0.030 ms");
+
+        assertEquals(1, result.queries().size());
+        assertEquals("SHOW TRANSACTION ISOLATION LEVEL", result.queries().getFirst().sql());
+        assertEquals(0.030, result.queries().getFirst().durationMillis());
+    }
+
+    @Test
+    void ignoresStandaloneDurationWithoutQuery() throws IOException {
+        var result = parse(
+                "2026-10-14 12:30:09.463 UTC [64] botdbuser@botdb 127.0.0.1(58308) LOG:  duration: 0.153 ms");
+
+        assertTrue(result.queries().isEmpty());
+    }
+
+    @Test
     void parsesVeryLongStatementWithoutRegexStackOverflow() throws IOException {
         String sql = "SELECT '" + "x".repeat(10_000_000) + "'";
         var result = parse(

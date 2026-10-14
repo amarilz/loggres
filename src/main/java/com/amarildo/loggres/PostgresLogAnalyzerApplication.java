@@ -4,9 +4,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class PostgresLogAlayzerApplication {
+public class PostgresLogAnalyzerApplication {
 
     static void main(String[] args) {
-        SpringApplication.run(PostgresLogAlayzerApplication.class, args);
+        SpringApplication.run(PostgresLogAnalyzerApplication.class, args);
     }
 }

@@ -40,15 +40,25 @@ public final class PostgresQueryAssembler {
 
         Optional<QueryLogMessage> parsed = queryParser.parse(entry.message());
 
-        if (parsed.isEmpty()) {
-            return List.of();
+        if (parsed.isPresent()) {
+            List<PostgresQuery> completed = flush(entry.pid());
+            if (parsed.get().sql().isBlank()) {
+                return completed;
+            }
+            PendingQuery from = PendingQuery.from(entry, parsed.get());
+            pending.put(entry.pid(), from);
+            return completed;
         }
 
-        List<PostgresQuery> completed = flush(entry.pid());
-        PendingQuery from = PendingQuery.from(entry, parsed.get());
-        pending.put(entry.pid(), from);
+        Optional<Double> duration = queryParser.parseStandaloneDuration(entry.message());
+        if (duration.isPresent()) {
+            PendingQuery query = pending.get(entry.pid());
+            if (query != null) {
+                query.setDurationMillis(duration.get());
+            }
+        }
 
-        return completed;
+        return List.of();
     }
 
     private List<PostgresQuery> acceptDetail(ParsedLogEntry entry) {

@@ -24,9 +24,14 @@ Query analysis currently recognizes `LOG` entries containing:
 ```text
 statement: SQL
 duration: DURATION ms statement: SQL
+duration: DURATION ms
 execute PREPARED_STATEMENT: SQL
 duration: DURATION ms execute PREPARED_STATEMENT: SQL
 ```
+
+When PostgreSQL logs a `statement:` or `execute` entry separately from its
+`duration:` entry, the duration is associated with the preceding query from the
+same process.
 
 Prepared-statement parameters can follow in a `DETAIL` entry with the same PID:
 
